@@ -4,25 +4,27 @@ import { setupAuth } from "./replit_integrations/auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import passport from "passport";
+import bcrypt from "bcryptjs";
+import { authStorage } from "./replit_integrations/auth/storage";
 
 // Hardcoded admin email for MVP
-const ADMIN_EMAIL = "admin@example.com"; 
+const ADMIN_EMAIL = "admin@example.com";
 // In a real app, this would be a role in the database or env var.
 // Since we are using Replit Auth, we rely on the email provided by the provider.
 // We can also just make the first user admin, or just check specific emails.
 
 function isAdmin(user: any) {
-  // For demo purposes, let's assume any user with "admin" in their email or name is admin, 
-  // OR if they are the first user (we can't check that easily here without DB access).
-  // Let's simpler: if the email is present in env ADMIN_EMAILS or just allow everyone to see dashboard for now if they toggle a "View as Admin" button? 
-  // No, that's not secure.
-  // Let's use a specific email check if available, or just a simple claim.
-  // Replit Auth provides email.
-  // Let's assume the user with email 'admin@example.com' is admin.
-  // Since we can't easily login as that specific email with Replit Auth (it uses actual accounts),
-  // I will make a hack: ALL users are admins for this MVP to demonstrate the functionality, 
-  // OR better: I will add a middleware that checks if the user is admin.
-  return true; // EVERYONE IS ADMIN FOR DEMO/MVP so they can see both sides.
+  if (!user) return false;
+  // Support both local role and Replit email check
+  if (user.role === "admin") return true;
+  if (user.claims?.email === ADMIN_EMAIL) return true;
+  // For safety in development, let's keep it restrictive but support the local admin role
+  return user.role === "admin";
+}
+
+function getUserId(user: any) {
+  return user.id || user.claims?.sub;
 }
 
 export async function registerRoutes(
@@ -32,12 +34,69 @@ export async function registerRoutes(
   // Setup Auth first
   await setupAuth(app);
 
+
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      const { username, password, role, email, firstName, lastName } = req.body;
+
+      const existingUser = await authStorage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await authStorage.upsertUser({
+        username,
+        password: hashedPassword,
+        role: role || "client",
+        email,
+        firstName,
+        lastName,
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Login failed" });
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.json(user);
+      });
+    })(req, res, next);
+  });
+
+  app.get("/api/auth/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
+
+  app.post("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.sendStatus(200);
+    });
+  });
+
   // Consultations
   app.get(api.consultations.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = req.user as any;
     const admin = isAdmin(user);
-    const consultations = await storage.getConsultationRequests(user.claims.sub, admin);
+    const userId = getUserId(user);
+    const consultations = await storage.getConsultationRequests(userId, admin);
     res.json(consultations);
   });
 
@@ -46,23 +105,28 @@ export async function registerRoutes(
     const user = req.user as any;
     const id = parseInt(req.params.id);
     const consultation = await storage.getConsultationRequest(id);
-    
+
     if (!consultation) return res.sendStatus(404);
-    
+
     // Check access
-    if (consultation.userId !== user.claims.sub && !isAdmin(user)) {
+    const userId = getUserId(user);
+    if (consultation.userId !== userId && !isAdmin(user)) {
       return res.sendStatus(403);
     }
-    
+
     res.json(consultation);
   });
 
   app.post(api.consultations.create.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = req.user as any;
+    if (isAdmin(user)) {
+      return res.status(403).json({ message: "Admins cannot create consultation requests" });
+    }
+    const userId = getUserId(user);
     try {
       const input = api.consultations.create.input.parse(req.body);
-      const consultation = await storage.createConsultationRequest(user.claims.sub, input);
+      const consultation = await storage.createConsultationRequest(userId, input);
       res.status(201).json(consultation);
     } catch (e) {
       if (e instanceof z.ZodError) {
@@ -77,14 +141,14 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = req.user as any;
     if (!isAdmin(user)) return res.sendStatus(403);
-    
+
     const id = parseInt(req.params.id);
     try {
       const { status } = api.consultations.updateStatus.input.parse(req.body);
       const updated = await storage.updateConsultationStatus(id, status);
       res.json(updated);
     } catch (e) {
-       if (e instanceof z.ZodError) {
+      if (e instanceof z.ZodError) {
         res.status(400).json(e.errors);
       } else {
         res.sendStatus(404);
@@ -97,10 +161,10 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = req.user as any;
     const consultationId = parseInt(req.params.id);
-    
+
     const consultation = await storage.getConsultationRequest(consultationId);
     if (!consultation) return res.sendStatus(404);
-    
+
     if (consultation.userId !== user.claims.sub && !isAdmin(user)) {
       return res.sendStatus(403);
     }
@@ -113,11 +177,13 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = req.user as any;
     const consultationId = parseInt(req.params.id);
-    
+
     const consultation = await storage.getConsultationRequest(consultationId);
     if (!consultation) return res.sendStatus(404);
-    
-    if (consultation.userId !== user.claims.sub && !isAdmin(user)) {
+
+    const userId = getUserId(user);
+    if (consultation.userId !== userId && !isAdmin(user)) {
+      console.log(`User ${userId} attempted to post message to consultation ${consultationId} without access.`);
       return res.sendStatus(403);
     }
 
@@ -129,16 +195,19 @@ export async function registerRoutes(
       // Let's check shared/schema.ts
       // insertMessageSchema = createInsertSchema(messages).omit({ id: true, senderId: true, isRead: true, createdAt: true });
       // It includes consultationId.
-      
-      const message = await storage.createMessage(user.claims.sub, {
+
+      console.log(`Creating message for consultation ${consultationId} by user ${userId}`);
+      const message = await storage.createMessage(userId, {
         ...input,
         consultationId // Ensure it matches the path
       });
       res.status(201).json(message);
     } catch (e) {
       if (e instanceof z.ZodError) {
+        console.error(`Validation error creating message for consultation ${consultationId}:`, e.errors);
         res.status(400).json(e.errors);
       } else {
+        console.error(`Error creating message for consultation ${consultationId}:`, e);
         throw e;
       }
     }

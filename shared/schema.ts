@@ -14,6 +14,8 @@ export const consultationRequests = pgTable("consultation_requests", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   status: text("status", { enum: ["pending", "active", "completed", "rejected"] }).default("pending").notNull(),
+  scheduledDate: timestamp("scheduled_date"),
+  timeSlot: text("time_slot"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -55,8 +57,9 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 
 // === BASE SCHEMAS ===
 
-export const insertConsultationRequestSchema = createInsertSchema(consultationRequests)
-  .omit({ id: true, userId: true, createdAt: true, updatedAt: true, status: true });
+export const insertConsultationRequestSchema = createInsertSchema(consultationRequests, {
+  scheduledDate: z.preprocess((val) => (typeof val === "string" ? new Date(val) : val), z.date().optional().nullable()),
+}).omit({ id: true, userId: true, createdAt: true, updatedAt: true, status: true });
 
 export const insertMessageSchema = createInsertSchema(messages)
   .omit({ id: true, senderId: true, isRead: true, createdAt: true });

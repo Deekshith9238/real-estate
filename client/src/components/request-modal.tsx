@@ -27,43 +27,13 @@ import {
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const formSchema = insertConsultationRequestSchema.extend({
-  title: z.string().min(5, "Title must be at least 5 characters"),
-  description: z.string().min(20, "Please provide more detail (at least 20 characters)"),
-});
+import { useConsultationForm } from "@/hooks/use-consultation-form";
 
 export function RequestModal() {
   const [open, setOpen] = useState(false);
-  const { mutate: createConsultation, isPending } = useCreateConsultation();
-  const { toast } = useToast();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-    },
+  const { form, onSubmit, isPending } = useConsultationForm({
+    onSuccess: () => setOpen(false),
   });
-
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    createConsultation(data, {
-      onSuccess: () => {
-        setOpen(false);
-        form.reset();
-        toast({
-          title: "Request Sent",
-          description: "Your consultation request has been submitted successfully.",
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

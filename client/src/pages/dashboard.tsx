@@ -13,37 +13,43 @@ import { format } from "date-fns";
 import { Clock, CheckCircle, XCircle, MessageSquare, ChevronRight, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import type { ConsultationRequest } from "@shared/routes";
+import type { ConsultationRequest } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data: consultations, isLoading } = useConsultations();
   const [selectedConsultationId, setSelectedConsultationId] = useState<number | null>(null);
-  
+
   // Admin logic: For this demo, let's say the user with ID "admin" or just the first user is admin.
   // Ideally this comes from the backend user role. 
   // For simplicity: If the user sees all requests (backend usually filters), we can just render the admin view.
   // But since the schema links request to userId, standard users only see their own.
   // We'll simulate "Admin View" if the user has a specific email or ID. 
   // Let's assume ANYONE can see the dashboard, but the content differs.
-  
+
   // Since we don't have roles in the schema provided in the prompt, I'll build a unified dashboard.
   // If the user is the CREATOR, they see their requests.
   // If the app was structured with roles, we'd have conditional rendering here.
-  
+
   const selectedConsultation = consultations?.find(c => c.id === selectedConsultationId);
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <NavBar />
-      
+
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Manage your consultation requests and messages.</p>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
+              {user?.role === "admin" ? "Client Requests" : "Dashboard"}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {user?.role === "admin"
+                ? "Manage and reply to client property inquiries."
+                : "Manage your consultation requests and messages."}
+            </p>
           </div>
-          <RequestModal />
+          {user?.role !== "admin" && <RequestModal />}
         </div>
 
         {isLoading ? (
@@ -109,9 +115,9 @@ export default function Dashboard() {
                   </Card>
 
                   {/* Chat Interface */}
-                  <ChatInterface 
-                    consultationId={selectedConsultation.id} 
-                    isActive={selectedConsultation.status === 'active'} 
+                  <ChatInterface
+                    consultationId={selectedConsultation.id}
+                    isActive={selectedConsultation.status === 'active'}
                   />
                 </div>
               ) : (
@@ -140,8 +146,8 @@ function ConsultationCard({ item, isSelected, onClick }: { item: ConsultationReq
       className={`
         p-4 rounded-xl cursor-pointer transition-all duration-200 border
         hover:shadow-md hover:border-primary/30
-        ${isSelected 
-          ? "bg-primary/5 border-primary/50 shadow-sm ring-1 ring-primary/20" 
+        ${isSelected
+          ? "bg-primary/5 border-primary/50 shadow-sm ring-1 ring-primary/20"
           : "bg-background border-transparent hover:bg-secondary/40"
         }
       `}
@@ -166,12 +172,12 @@ function ConsultationCard({ item, isSelected, onClick }: { item: ConsultationReq
 }
 
 function AdminControls({ consultation }: { consultation: ConsultationRequest }) {
-  // This component would likely be conditionally rendered only for admins
-  // For the demo, we'll show it but perhaps disable it if it's the user's own view?
-  // Let's assume everyone can change status for now to demonstrate the feature functionality requested
-  // "Ability to accept/reject/complete requests"
-  
+  const { user } = useAuth();
   const { mutate: updateStatus, isPending } = useUpdateConsultationStatus();
+
+  if (user?.role !== "admin") {
+    return null;
+  }
 
   const handleStatusChange = (status: "active" | "completed" | "rejected") => {
     updateStatus({ id: consultation.id, status });
@@ -185,17 +191,17 @@ function AdminControls({ consultation }: { consultation: ConsultationRequest }) 
     <div className="flex gap-2">
       {consultation.status === "pending" && (
         <>
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             className="h-8 border-green-500/20 text-green-600 hover:bg-green-50 hover:text-green-700"
             onClick={() => handleStatusChange("active")}
             disabled={isPending}
           >
             <CheckCircle className="w-3 h-3 mr-1" /> Accept
           </Button>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             variant="outline"
             className="h-8 border-red-500/20 text-red-600 hover:bg-red-50 hover:text-red-700"
             onClick={() => handleStatusChange("rejected")}
@@ -206,8 +212,8 @@ function AdminControls({ consultation }: { consultation: ConsultationRequest }) 
         </>
       )}
       {consultation.status === "active" && (
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           variant="outline"
           className="h-8"
           onClick={() => handleStatusChange("completed")}

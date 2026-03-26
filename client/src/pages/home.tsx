@@ -1,17 +1,49 @@
-import { Link } from "wouter";
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/nav-bar";
-import { ArrowRight, CheckCircle2, Star, Building2, Users, TrendingUp } from "lucide-react";
+import { Footer } from "@/components/footer";
+import { ArrowRight, CheckCircle2, Star, Building2, Users, TrendingUp, FileSearch, ShieldAlert, FilePlus2, FileCheck, Compass, FileText, Files, ClipboardList, Layout, History, Landmark, Map as MapIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { BookingModal } from "@/components/booking-modal";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState("");
+
+  const handleServiceClick = (title: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to book a consultation with our experts.",
+        variant: "destructive",
+        action: (
+          <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
+            Login
+          </Button>
+        ),
+      });
+      return;
+    }
+    setSelectedService(title);
+    setBookingOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />
-      
+
+      <BookingModal 
+        open={bookingOpen} 
+        onOpenChange={setBookingOpen} 
+        serviceTitle={selectedService} 
+      />
+
       {/* Hero Section */}
       <section className="relative w-full py-20 lg:py-32 overflow-hidden">
         {/* Background Decorative Elements */}
@@ -20,9 +52,9 @@ export default function Home() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            
+
             {/* Left Column: Content */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -30,19 +62,19 @@ export default function Home() {
             >
               <div className="inline-flex items-center px-4 py-2 rounded-full bg-secondary/50 border border-primary/10 text-primary-foreground/80">
                 <Star className="w-4 h-4 text-primary mr-2 fill-primary" />
-                <span className="text-sm font-medium text-primary">Premium Real Estate Consulting</span>
+                <span className="text-sm font-medium text-primary">NRI Property Management Experts</span>
               </div>
-              
-              <h1 className="text-5xl lg:text-7xl font-serif font-bold leading-[1.1] tracking-tight text-foreground">
-                Expert Guidance for <br/>
+
+              <h1 className="text-5xl lg:text-7xl font-serif font-bold leading-[1.1] tracking-tight text-foreground uppercase">
+                Hassle-Free <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
-                  Prime Properties
+                  Property Management
                 </span>
+                <br /> for NRIs
               </h1>
-              
+
               <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
-                Navigate the luxury real estate market with confidence. 
-                Our consultants provide personalized insights to help you secure your dream investment.
+                Stay anywhere and relax. We take full responsibility for your property in India—from tenant search to maintenance and compliance.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -53,7 +85,7 @@ export default function Home() {
                     </Button>
                   </Link>
                 ) : (
-                  <Link href="/api/login">
+                  <Link href="/auth">
                     <Button size="lg" className="rounded-full px-8 h-14 text-lg font-semibold bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all">
                       Get Started <ArrowRight className="ml-2 w-5 h-5" />
                     </Button>
@@ -66,7 +98,7 @@ export default function Home() {
             </motion.div>
 
             {/* Right Column: Image */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -74,14 +106,14 @@ export default function Home() {
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-[32px] transform translate-x-4 translate-y-4 -z-10" />
               {/* Modern apartment interior */}
-              <img 
-                src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2053&auto=format&fit=crop"
-                alt="Luxury Interior" 
+              <img
+                src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=2073&auto=format&fit=crop"
+                alt="Professional Property Management"
                 className="w-full h-[600px] object-cover rounded-[32px] shadow-2xl border border-white/20"
               />
-              
+
               {/* Floating Card */}
-              <motion.div 
+              <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
@@ -92,8 +124,8 @@ export default function Home() {
                     <Building2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="font-bold text-lg">500+</p>
-                    <p className="text-xs text-muted-foreground">Properties Managed</p>
+                    <p className="font-bold text-lg">1000+</p>
+                    <p className="text-xs text-muted-foreground">Happy NRI Clients</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -101,8 +133,8 @@ export default function Home() {
                     <TrendingUp className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="font-bold text-lg">$2.4B</p>
-                    <p className="text-xs text-muted-foreground">Total Valuation</p>
+                    <p className="font-bold text-lg">100%</p>
+                    <p className="text-xs text-muted-foreground">Transparency Guaranteed</p>
                   </div>
                 </div>
               </motion.div>
@@ -115,29 +147,33 @@ export default function Home() {
       <section className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4">Why Choose EstateConsult?</h2>
-            <p className="text-muted-foreground">We bring decades of experience and market intelligence to your real estate journey.</p>
+            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Our Core Services</h2>
+            <p className="text-muted-foreground">Comprehensive solutions tailored for Non-Resident Indians to manage their assets with peace of mind.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 icon: Users,
-                title: "Dedicated Experts",
-                desc: "Work 1-on-1 with a consultant who understands your specific goals and preferences."
+                title: "Tenancy Management",
+                desc: "Tenant search, rigorous background checks, rental agreement handling, and monthly rent collection."
               },
               {
                 icon: Building2,
-                title: "Exclusive Listings",
-                desc: "Access off-market properties and pre-construction opportunities before anyone else."
+                title: "Property Maintenance",
+                desc: "Regular inspections, cleaning, home improvements, and specialized repairs (plumbing, electrical)."
               },
               {
                 icon: CheckCircle2,
-                title: "Verified Process",
-                desc: "Our rigorous due diligence ensures every investment is secure and sound."
+                title: "Compliance & Bills",
+                desc: "Property tax payments, utility bill management, and assistance with legal documentation."
               }
             ].map((feature, i) => (
-              <div key={i} className="bg-background p-8 rounded-2xl border border-border/50 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
+              <div 
+                key={i} 
+                onClick={() => handleServiceClick(feature.title)}
+                className="bg-background p-8 rounded-2xl border border-border/50 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group cursor-pointer"
+              >
                 <div className="w-14 h-14 rounded-xl bg-primary/5 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                   <feature.icon className="w-7 h-7" />
                 </div>
@@ -149,23 +185,137 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-foreground text-background py-12 mt-auto">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div>
-            <span className="text-2xl font-serif font-bold tracking-tight">
-              Estate<span className="text-primary">Consult</span>
-            </span>
-            <p className="text-sm text-gray-400 mt-2">Premium Real Estate Consulting Services</p>
+      {/* Expert Advisory Section */}
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Real Estate Expert Advisory</h2>
+            <p className="text-muted-foreground">Get property insights and professional guidance from seasoned real-estate experts to handle complex property matters.</p>
           </div>
-          <div className="flex gap-8 text-sm text-gray-400">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-primary transition-colors">Contact</a>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                icon: FileSearch,
+                title: "Property Analysis",
+                desc: "Complete property analysis including market trends, location valuation, legal document review, and future appreciation insights."
+              },
+              {
+                icon: ShieldAlert,
+                title: "Property Disputes",
+                desc: "Expert guidance and resolution strategies for property-related disputes and legal complexities."
+              },
+              {
+                icon: FilePlus2,
+                title: "Missing Documents Procurement",
+                desc: "Professional assistance in identifying, locating, and retrieving missing or lost property documents through official channels."
+              },
+              {
+                icon: FileCheck,
+                title: "Document Rectification",
+                desc: "Specialized help in correcting errors in title deeds, sale agreements, and other legal property documentation."
+              },
+              {
+                icon: Compass,
+                title: "Survey Issue Rectification",
+                desc: "Support for land survey matters, boundary disputes, and official measurement rectifications."
+              }
+            ].map((feature, i) => (
+              <div 
+                key={i} 
+                onClick={() => handleServiceClick(feature.title)}
+                className="bg-secondary/10 p-8 rounded-2xl border border-border/50 shadow-sm hover:shadow-xl transition-all hover:-translate-y-2 group cursor-pointer"
+              >
+                <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6">
+                  <feature.icon className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-serif font-bold mb-3 text-foreground">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed text-sm">{feature.desc}</p>
+              </div>
+            ))}
           </div>
-          <p className="text-sm text-gray-500">© 2024 EstateConsult. All rights reserved.</p>
         </div>
-      </footer>
+      </section>
+
+      {/* Property Documents Section */}
+      <section className="py-24 bg-secondary/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Property Document Services</h2>
+            <p className="text-muted-foreground">Essential documents required for property transactions in Karnataka. We assist in procuring and verifying these crucial records.</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[
+              { icon: FileText, title: "Sale Deed", sub: "Certified Copy" },
+              { icon: Files, title: "EC", sub: "Encumbrance Certificate" },
+              { icon: ClipboardList, title: "Khata", sub: "Extract & Certificate" },
+              { icon: MapIcon, title: "RTC / Pahani", sub: "Record of Rights" },
+              { icon: Layout, title: "Village Map", sub: "Boundary Details" },
+              { icon: History, title: "Mutation", sub: "Ownership History" },
+              { icon: Landmark, title: "BBMP Records", sub: "e-Khata & Tax" },
+              { icon: Compass, title: "Survey Sketch", sub: "Official Layout" }
+            ].map((doc, i) => (
+              <div 
+                key={i} 
+                onClick={() => handleServiceClick(doc.title)}
+                className="bg-background p-6 rounded-2xl border border-border/50 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/5 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <doc.icon className="w-6 h-6" />
+                </div>
+                <h4 className="font-serif font-bold text-sm tracking-tight">{doc.title}</h4>
+                <p className="text-[10px] text-muted-foreground uppercase mt-1 tracking-wider">{doc.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+
+      {/* How It Works */}
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">How It Works</h2>
+            <p className="text-muted-foreground">Four simple steps to get your property professionally managed.</p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-8">
+            {[
+              {
+                step: "01",
+                title: "Inquiry",
+                desc: "Send us your property details and management needs."
+              },
+              {
+                step: "02",
+                title: "Property Visit",
+                desc: "Our experts visit and assess the property's condition."
+              },
+              {
+                step: "03",
+                title: "Agreement",
+                desc: "Transparent contracts with fixed and fair pricing."
+              },
+              {
+                step: "04",
+                title: "Management",
+                desc: "Sit back and relax while we handle everything end-to-end."
+              }
+            ].map((step, i) => (
+              <div key={i} className="relative p-8 rounded-2xl border border-border/50 bg-secondary/10 flex flex-col items-center text-center">
+                <span className="text-4xl font-serif font-bold text-primary/20 mb-4">{step.step}</span>
+                <h3 className="text-xl font-serif font-bold mb-3">{step.title}</h3>
+                <p className="text-sm text-muted-foreground">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }

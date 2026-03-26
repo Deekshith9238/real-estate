@@ -21,7 +21,7 @@ export function NavBar() {
   };
 
   // Simple initial fallback for avatar
-  const initials = user?.firstName && user?.lastName 
+  const initials = user?.firstName && user?.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`
     : user?.email?.substring(0, 2).toUpperCase() || "U";
 
@@ -30,10 +30,10 @@ export function NavBar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 bg-primary rounded-tr-xl rounded-bl-xl flex items-center justify-center transition-transform group-hover:scale-105">
-            <span className="text-primary-foreground font-serif font-bold text-lg">E</span>
+            <span className="text-primary-foreground font-serif font-bold text-lg">I</span>
           </div>
-          <span className="text-xl font-serif font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
-            Estate<span className="text-primary">Consult</span>
+          <span className="text-xl font-serif font-bold tracking-tight text-foreground group-hover:text-primary transition-colors uppercase">
+            India<span className="text-primary">Zameen</span>
           </span>
         </Link>
 
@@ -41,18 +41,24 @@ export function NavBar() {
           <Link href="/" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/' ? 'text-primary' : 'text-muted-foreground'}`}>
             Home
           </Link>
-          
+          <Link href="/about" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/about' ? 'text-primary' : 'text-muted-foreground'}`}>
+            About
+          </Link>
+          <Link href="/contact" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/contact' ? 'text-primary' : 'text-muted-foreground'}`}>
+            Contact
+          </Link>
+
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
-               <Link href="/dashboard" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/dashboard' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <Link href="/dashboard" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/dashboard' ? 'text-primary' : 'text-muted-foreground'}`}>
                 Dashboard
               </Link>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-primary/10 hover:ring-primary/20 transition-all">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user?.profileImageUrl} alt={user?.firstName || "User"} />
+                      <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
                       <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -71,7 +77,7 @@ export function NavBar() {
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="rounded-lg cursor-pointer text-destructive focus:bg-destructive/5 focus:text-destructive mt-1"
                     onClick={handleLogout}
                   >
@@ -83,9 +89,14 @@ export function NavBar() {
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <Link href="/api/login">
+              <Link href="/auth?tab=register">
+                <Button variant="outline" className="font-semibold transition-all">
+                  Sign Up
+                </Button>
+              </Link>
+              <Link href="/auth">
                 <Button className="font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                  Client Login
+                  Login
                 </Button>
               </Link>
             </div>

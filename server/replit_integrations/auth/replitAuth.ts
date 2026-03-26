@@ -6,7 +6,13 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
+import createMemoryStore from "memorystore";
 import { authStorage } from "./storage";
+import { Strategy as LocalStrategy } from "passport-local";
+import bcrypt from "bcryptjs";
+import { users } from "@shared/models/auth";
+
+const hasOidcEnv = Boolean(process.env.REPL_ID) && Boolean(process.env.SESSION_SECRET);
 
 const getOidcConfig = memoize(
   async () => {
@@ -20,21 +26,28 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  const secret = process.env.SESSION_SECRET ?? "dev-session-secret";
+  const secureCookie = process.env.NODE_ENV === "production";
+
+  const sessionStore = process.env.DATABASE_URL
+    ? new (connectPg(session))({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: false,
+      ttl: sessionTtl,
+      tableName: "sessions",
+    })
+    : new (createMemoryStore(session))({
+      checkPeriod: sessionTtl,
+    });
+
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: secureCookie,
       maxAge: sessionTtl,
     },
   });
@@ -66,74 +79,188 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
+  // Local/dev convenience: if OIDC isn't configured, don't crash the server.
+  // Instead, run in a "dev auth" mode with a fixed user.
+  if (!hasOidcEnv && process.env.NODE_ENV !== "production") {
+    const devUserClaims = {
+      sub: "dev-user",
+      email: "dev@example.com",
+      first_name: "Dev",
+      last_name: "User",
+      profile_image_url: null,
+      exp: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60, // ~10 years
+    };
 
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback
-  ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
-  };
-
-  // Keep track of registered strategies
-  const registeredStrategies = new Set<string>();
-
-  // Helper function to ensure strategy exists for a domain
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
-    if (!registeredStrategies.has(strategyName)) {
-      const strategy = new Strategy(
-        {
-          name: strategyName,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify
-      );
-      passport.use(strategy);
-      registeredStrategies.add(strategyName);
-    }
-  };
-
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
-
-  app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
-  });
-
-  app.get("/api/callback", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
-  });
-
-  app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+    await authStorage.upsertUser({
+      id: devUserClaims.sub,
+      email: devUserClaims.email,
+      firstName: devUserClaims.first_name,
+      lastName: devUserClaims.last_name,
+      profileImageUrl: devUserClaims.profile_image_url,
     });
+
+    // We'll keep the dev user for simplicity in some contexts, but we won't return early
+    // so that our LocalStrategy and custom routes can be registered.
+    /*
+    app.use((req: any, _res, next) => {
+      req.isAuthenticated = () => true;
+      req.user = {
+        claims: devUserClaims,
+        expires_at: devUserClaims.exp,
+        access_token: "dev",
+        refresh_token: "dev",
+      };
+      next();
+    });
+    */
+
+    // app.get("/api/login", (_req, res) => res.redirect("/")); // Conflicting with our new route
+    app.get("/api/callback", (_req, res) => res.redirect("/"));
+    app.get("/api/callback/dev", (_req, res) => res.redirect("/"));
+    /*
+    app.get("/api/logout", (req, res) => {
+      // express-session cleanup
+      req.session?.destroy(() => res.redirect("/"));
+    });
+    */
+  }
+
+  passport.serializeUser((user: any, cb) => {
+    cb(null, user.id);
   });
+
+  passport.deserializeUser(async (id: string, cb) => {
+    try {
+      const user = await authStorage.getUser(id);
+      cb(null, user);
+    } catch (err) {
+      cb(err);
+    }
+  });
+
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      try {
+        const user = await authStorage.getUserByUsername(username);
+        if (!user || !user.password) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    })
+  );
+
+  // Keep OIDC routes for compatibility if env exists
+  if (hasOidcEnv) {
+    const config = await getOidcConfig();
+    const verifyOidc: VerifyFunction = async (
+      tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
+      verified: passport.AuthenticateCallback
+    ) => {
+      const claims = tokens.claims();
+      if (!claims) {
+        return verified(new Error("No claims found in token"), null);
+      }
+      const user = await authStorage.upsertUser({
+        id: claims["sub"] as string,
+        email: claims["email"] as string,
+        firstName: claims["first_name"] as string,
+        lastName: claims["last_name"] as string,
+        profileImageUrl: claims["profile_image_url"] as string,
+      });
+      verified(null, user);
+    };
+
+    const registeredStrategies = new Set<string>();
+    const ensureStrategy = (domain: string) => {
+      const strategyName = `replitauth:${domain}`;
+      if (!registeredStrategies.has(strategyName)) {
+        const strategy = new Strategy(
+          {
+            name: strategyName,
+            config,
+            scope: "openid email profile offline_access",
+            callbackURL: `https://${domain}/api/callback`,
+          },
+          verifyOidc
+        );
+        passport.use(strategy);
+        registeredStrategies.add(strategyName);
+      }
+    };
+
+    app.get("/api/login/oidc", (req, res, next) => {
+      ensureStrategy(req.hostname);
+      passport.authenticate(`replitauth:${req.hostname}`, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    });
+
+    app.get("/api/callback", (req, res, next) => {
+      ensureStrategy(req.hostname);
+      passport.authenticate(`replitauth:${req.hostname}`, {
+        successReturnToOrRedirect: "/",
+        failureRedirect: "/auth",
+      })(req, res, next);
+    });
+  }
+
+  // Seed default admin user
+  (async () => {
+    try {
+      const adminUser = await authStorage.getUserByUsername("admin");
+      if (!adminUser) {
+        console.log("Seeding default admin user...");
+        const hashedPassword = await bcrypt.hash("Nri@2026", 10);
+        await authStorage.upsertUser({
+          username: "admin",
+          password: hashedPassword,
+          role: "admin",
+          email: "admin@nripropservices.com",
+          firstName: "Admin",
+          lastName: "User",
+        });
+        console.log("Default admin user created.");
+      } else if (adminUser.role !== "admin") {
+        console.log("Fixing admin role for existing admin user...");
+        const hashedPassword = await bcrypt.hash("Nri@2026", 10);
+        await authStorage.upsertUser({
+          id: adminUser.id,
+          username: "admin",
+          password: hashedPassword,
+          role: "admin",
+          email: "admin@nripropservices.com",
+          firstName: "Admin",
+          lastName: "User",
+        });
+        console.log("Admin role fixed.");
+      }
+    } catch (err) {
+      console.error("Error seeding admin user:", err);
+    }
+  })();
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!hasOidcEnv && process.env.NODE_ENV !== "production") {
+    return next();
+  }
+
+  const user = req.user as any;
+  if (!user || !user.expires_at) {
+    // If it's a local user (no expires_at), they might still be valid
+    if (user && !user.claims) return next();
     return res.status(401).json({ message: "Unauthorized" });
   }
 
