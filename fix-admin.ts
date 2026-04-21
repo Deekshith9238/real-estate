@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { db } from "./server/db";
 import { users } from "./shared/models/auth";
 import { eq } from "drizzle-orm";

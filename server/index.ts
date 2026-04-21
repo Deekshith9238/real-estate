@@ -2,9 +2,19 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use("/uploads", express.static(uploadsDir));
 
 declare module "http" {
   interface IncomingMessage {

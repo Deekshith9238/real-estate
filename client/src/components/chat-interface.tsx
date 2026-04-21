@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { useMessages, useSendMessage } from "@/hooks/use-consultations";
+import { useMessages, useSendMessage, useUploadDocument } from "@/hooks/use-consultations";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Send, Clock, CheckCircle2, AlertCircle, Paperclip, FileText, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
@@ -19,8 +19,21 @@ export function ChatInterface({ consultationId, isActive }: ChatInterfaceProps) 
   const { user } = useAuth();
   const { data: messages, isLoading } = useMessages(consultationId);
   const { mutate: sendMessage, isPending } = useSendMessage();
+  const { mutate: uploadDocument, isPending: isUploading } = useUploadDocument();
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && isActive) {
+      uploadDocument({ consultationId, file });
+    }
+    // reset input so the same file can be uploaded again if needed
+    if (e.target) {
+      e.target.value = "";
+    }
+  };
 
   useEffect(() => {
     // Scroll to bottom when messages update
@@ -87,7 +100,26 @@ export function ChatInterface({ consultationId, isActive }: ChatInterfaceProps) 
                           : "bg-secondary text-secondary-foreground rounded-tl-none border border-border/50"
                       )}
                     >
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      {msg.documentUrl ? (
+                        <div className="flex items-center gap-3 bg-black/10 p-3 rounded-xl border border-white/20">
+                          <FileText className="w-8 h-8 opacity-80" />
+                          <div className="flex-1 overflow-hidden min-w-0">
+                            <p className="text-sm font-semibold truncate" title={msg.documentName || "Document"}>
+                              {msg.documentName || "Document"}
+                            </p>
+                            <a 
+                              href={msg.documentUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs flex items-center mt-1 hover:underline cursor-pointer"
+                            >
+                              <Download className="w-3 h-3 mr-1" /> Download
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                      )}
                       <p className={cn(
                         "text-[10px] mt-1 opacity-70",
                         isMe ? "text-primary-foreground/80" : "text-muted-foreground"
@@ -113,18 +145,41 @@ export function ChatInterface({ consultationId, isActive }: ChatInterfaceProps) 
 
       {/* Input Area */}
       <div className="p-4 border-t border-border/50 bg-background">
-        <form onSubmit={handleSend} className="flex gap-3">
+        <form onSubmit={handleSend} className="flex gap-3 items-center">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!isActive || isUploading}
+            className="rounded-xl text-muted-foreground hover:text-foreground shrink-0"
+            title="Attach Document"
+          >
+            {isUploading ? (
+              <Clock className="w-5 h-5 animate-spin" />
+            ) : (
+              <Paperclip className="w-5 h-5" />
+            )}
+          </Button>
+
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={isActive ? "Type your message..." : "This consultation is closed."}
-            disabled={!isActive || isPending}
+            disabled={!isActive || isPending || isUploading}
             className="flex-1 rounded-xl bg-secondary/30 border-border/50 focus:ring-primary/20 focus:border-primary"
           />
           <Button 
             type="submit" 
-            disabled={!isActive || isPending || !inputValue.trim()}
-            className="rounded-xl px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
+            disabled={!isActive || isPending || isUploading || !inputValue.trim()}
+            className="rounded-xl px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all shrink-0"
           >
             {isPending ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

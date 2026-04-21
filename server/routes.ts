@@ -7,6 +7,26 @@ import { z } from "zod";
 import passport from "passport";
 import bcrypt from "bcryptjs";
 import { authStorage } from "./replit_integrations/auth/storage";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, "uploads/"),
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+});
 
 // Hardcoded admin email for MVP
 const ADMIN_EMAIL = "admin@example.com";
@@ -18,9 +38,9 @@ function isAdmin(user: any) {
   if (!user) return false;
   // Support both local role and Replit email check
   if (user.role === "admin") return true;
+  if (user.username === "admin") return true;
   if (user.claims?.email === ADMIN_EMAIL) return true;
-  // For safety in development, let's keep it restrictive but support the local admin role
-  return user.role === "admin";
+  return false;
 }
 
 function getUserId(user: any) {
@@ -165,7 +185,8 @@ export async function registerRoutes(
     const consultation = await storage.getConsultationRequest(consultationId);
     if (!consultation) return res.sendStatus(404);
 
-    if (consultation.userId !== user.claims.sub && !isAdmin(user)) {
+    const userId = getUserId(user);
+    if (consultation.userId !== userId && !isAdmin(user)) {
       return res.sendStatus(403);
     }
 
@@ -210,6 +231,37 @@ export async function registerRoutes(
         console.error(`Error creating message for consultation ${consultationId}:`, e);
         throw e;
       }
+    }
+  });
+
+  app.post("/api/consultations/:id/upload", upload.single("document"), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = req.user as any;
+    const consultationId = parseInt(req.params.id);
+
+    const consultation = await storage.getConsultationRequest(consultationId);
+    if (!consultation) return res.sendStatus(404);
+
+    const userId = getUserId(user);
+    if (consultation.userId !== userId && !isAdmin(user)) {
+      return res.sendStatus(403);
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No document provided" });
+    }
+
+    try {
+      const message = await storage.createMessage(userId, {
+        consultationId,
+        content: `Uploaded document: ${req.file.originalname}`,
+        documentUrl: `/uploads/${req.file.filename}`,
+        documentName: req.file.originalname,
+      });
+      res.status(201).json(message);
+    } catch (e) {
+      console.error(`Error saving uploaded document for consultation ${consultationId}:`, e);
+      res.status(500).json({ message: "Failed to upload document" });
     }
   });
 

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/nav-bar";
 import { Footer } from "@/components/footer";
-import { ArrowRight, CheckCircle2, Star, Building2, Users, TrendingUp, FileSearch, ShieldAlert, FilePlus2, FileCheck, Compass, FileText, Files, ClipboardList, Layout, History, Landmark, Map as MapIcon } from "lucide-react";
+import { ArrowRight, CheckCircle2, Star, Building2, Users, TrendingUp, FileSearch, ShieldAlert, FilePlus2, FileCheck, Compass, FileText, Files, ClipboardList, Layout, History, Landmark, Map as MapIcon, Zap, Droplets, MapPin, RefreshCcw, Stamp, FileSpreadsheet, Crop, Briefcase } from "lucide-react";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
 import { useToast } from "@/hooks/use-toast";
@@ -250,11 +250,20 @@ export default function Home() {
               { icon: FileText, title: "Sale Deed", sub: "Certified Copy" },
               { icon: Files, title: "EC", sub: "Encumbrance Certificate" },
               { icon: ClipboardList, title: "Khata", sub: "Extract & Certificate" },
+              { icon: RefreshCcw, title: "Khata Transfer", sub: "Ownership Change" },
               { icon: MapIcon, title: "RTC / Pahani", sub: "Record of Rights" },
+              { icon: FileSpreadsheet, title: "Akarband", sub: "Land Area Details" },
+              { icon: Crop, title: "PODI", sub: "Land Subdivision" },
+              { icon: Compass, title: "Survey Sketch", sub: "Official Layout" },
               { icon: Layout, title: "Village Map", sub: "Boundary Details" },
-              { icon: History, title: "Mutation", sub: "Ownership History" },
-              { icon: Landmark, title: "BBMP Records", sub: "e-Khata & Tax" },
-              { icon: Compass, title: "Survey Sketch", sub: "Official Layout" }
+              { icon: History, title: "Mutation Record", sub: "Ownership History" },
+              { icon: Landmark, title: "GBA Records", sub: "e-Khata & Tax" },
+              { icon: Building2, title: "BDA", sub: "Layout Approvals" },
+              { icon: MapPin, title: "BMRDA", sub: "Region Approvals" },
+              { icon: Zap, title: "BESCOM", sub: "Electricity Connections" },
+              { icon: Droplets, title: "BWSSB", sub: "Water Connections" },
+              { icon: Stamp, title: "Property Registration", sub: "Sub-Registrar Office" },
+              { icon: Briefcase, title: "Dept. Liaison", sub: "Govt & Revenue Depts" }
             ].map((doc, i) => (
               <div 
                 key={i} 

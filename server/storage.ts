@@ -184,6 +184,8 @@ class MemoryStorage implements IStorage {
       consultationId: message.consultationId,
       senderId,
       content: message.content,
+      documentUrl: message.documentUrl ?? null,
+      documentName: message.documentName ?? null,
       isRead: false,
       createdAt: now,
     };

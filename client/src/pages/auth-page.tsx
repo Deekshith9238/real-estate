@@ -181,6 +181,47 @@ export default function AuthPage() {
                                                 </FormItem>
                                             )}
                                         />
+                                        <FormField
+                                            control={registerForm.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Email (Optional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="name@example.com" {...field} className="rounded-xl" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={registerForm.control}
+                                                name="firstName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>First Name (Optional)</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="John" {...field} className="rounded-xl" />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={registerForm.control}
+                                                name="lastName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Last Name (Optional)</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Doe" {...field} className="rounded-xl" />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                         <Button type="submit" className="w-full rounded-xl h-11 font-semibold" disabled={isRegistering}>
                                             {isRegistering ? "Creating account..." : "Register"}
                                         </Button>

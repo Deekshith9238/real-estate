@@ -25,6 +25,8 @@ export const messages = pgTable("messages", {
   consultationId: integer("consultation_id").notNull().references(() => consultationRequests.id),
   senderId: text("sender_id").notNull().references(() => users.id),
   content: text("content").notNull(),
+  documentUrl: text("document_url"),
+  documentName: text("document_name"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

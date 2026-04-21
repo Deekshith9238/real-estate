@@ -114,3 +114,26 @@ export function useSendMessage() {
     },
   });
 }
+
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ consultationId, file }: { consultationId: number; file: File }) => {
+      const url = `/api/consultations/${consultationId}/upload`;
+      const formData = new FormData();
+      formData.append("document", file);
+
+      const res = await fetch(url, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to upload document");
+      // Res returns the created message
+      return await res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.messages.list.path, variables.consultationId] });
+    },
+  });
+}
