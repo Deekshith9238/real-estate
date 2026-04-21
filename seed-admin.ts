@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "./server/db";
 import { users } from "./shared/models/auth";
 import { eq } from "drizzle-orm";
-import { crypto } from "node:crypto";
+import crypto from "node:crypto";
 
 async function seedAdmin() {
     const username = "admin";
