@@ -8,6 +8,7 @@ RUN npm ci
 
 # Copy source code and build
 COPY . .
+ENV GODEBUG=asyncpreemptoff=1
 RUN npm run build
 
 # Expose port

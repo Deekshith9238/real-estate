@@ -64,7 +64,7 @@ export const insertConsultationRequestSchema = createInsertSchema(consultationRe
 }).omit({ id: true, userId: true, createdAt: true, updatedAt: true, status: true });
 
 export const insertMessageSchema = createInsertSchema(messages)
-  .omit({ id: true, senderId: true, isRead: true, createdAt: true });
+  .omit({ id: true, consultationId: true, senderId: true, isRead: true, createdAt: true });
 
 // === EXPLICIT API CONTRACT TYPES ===
 

@@ -66,15 +66,15 @@ export default function Home() {
               </div>
 
               <h1 className="text-5xl lg:text-7xl font-serif font-bold leading-[1.1] tracking-tight text-foreground uppercase">
-                Hassle-Free <br />
+                One Stop Soultion <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
-                  Property Management
+                  For All Your
                 </span>
-                <br /> for NRIs
+                <br /> Property Related Matters.
               </h1>
 
               <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
-                Stay anywhere and relax. We take full responsibility for your property in India—from tenant search to maintenance and compliance.
+                E-Khata, BBMP, BDA, BWSSB, BESCOM, BMRDA, PODI, RTC, EC, Akarband, Village Map, Survey Sketch, Mutation Record, Khata Transfer, Tax Payment, Property Registartion.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -87,7 +87,7 @@ export default function Home() {
                 ) : (
                   <Link href="/auth">
                     <Button size="lg" className="rounded-full px-8 h-14 text-lg font-semibold bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all">
-                      Get Started <ArrowRight className="ml-2 w-5 h-5" />
+                      Contact Us <ArrowRight className="ml-2 w-5 h-5" />
                     </Button>
                   </Link>
                 )}
@@ -143,11 +143,54 @@ export default function Home() {
         </div>
       </section>
 
+       <section className="py-24 bg-secondary/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Property Document Services</h2>
+            <p className="text-muted-foreground">Essential documents required for property transactions in South India. We assist in procuring and verifying these crucial records.</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[
+              { icon: FileText, title: "Sale Deed", sub: "Certified Copy" },
+              { icon: Files, title: "EC", sub: "Encumbrance Certificate" },
+              { icon: ClipboardList, title: "Khata", sub: "Extract & Certificate" },
+              { icon: RefreshCcw, title: "Khata Transfer", sub: "Ownership Change" },
+              { icon: MapIcon, title: "RTC / Pahani", sub: "Record of Rights" },
+              { icon: FileSpreadsheet, title: "Akarband", sub: "Land Area Details" },
+              { icon: Crop, title: "PODI", sub: "Land Subdivision" },
+              { icon: Compass, title: "Survey Sketch", sub: "Official Layout" },
+              { icon: Layout, title: "Village Map", sub: "Boundary Details" },
+              { icon: History, title: "Mutation Record", sub: "Ownership History" },
+              { icon: Landmark, title: "GBA Records", sub: "e-Khata & Tax" },
+              { icon: Building2, title: "BDA", sub: "Layout Approvals" },
+              { icon: MapPin, title: "BMRDA", sub: "Region Approvals" },
+              { icon: Zap, title: "BESCOM", sub: "Electricity Connections" },
+              { icon: Droplets, title: "BWSSB", sub: "Water Connections" },
+              { icon: Stamp, title: "Property Registration", sub: "Sub-Registrar Office" },
+              { icon: Briefcase, title: "Dept. Liaison", sub: "Govt & Revenue Depts" }
+            ].map((doc, i) => (
+              <div 
+                key={i} 
+                onClick={() => handleServiceClick(doc.title)}
+                className="bg-background p-6 rounded-2xl border border-border/50 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/5 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <doc.icon className="w-6 h-6" />
+                </div>
+                <h4 className="font-serif font-bold text-sm tracking-tight">{doc.title}</h4>
+                <p className="text-[10px] text-muted-foreground uppercase mt-1 tracking-wider">{doc.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section className="py-24 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Our Core Services</h2>
+            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Other Core Services</h2>
             <p className="text-muted-foreground">Comprehensive solutions tailored for Non-Resident Indians to manage their assets with peace of mind.</p>
           </div>
 
@@ -238,48 +281,6 @@ export default function Home() {
       </section>
 
       {/* Property Documents Section */}
-      <section className="py-24 bg-secondary/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl lg:text-4xl font-serif font-bold mb-4 uppercase">Property Document Services</h2>
-            <p className="text-muted-foreground">Essential documents required for property transactions in Karnataka. We assist in procuring and verifying these crucial records.</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[
-              { icon: FileText, title: "Sale Deed", sub: "Certified Copy" },
-              { icon: Files, title: "EC", sub: "Encumbrance Certificate" },
-              { icon: ClipboardList, title: "Khata", sub: "Extract & Certificate" },
-              { icon: RefreshCcw, title: "Khata Transfer", sub: "Ownership Change" },
-              { icon: MapIcon, title: "RTC / Pahani", sub: "Record of Rights" },
-              { icon: FileSpreadsheet, title: "Akarband", sub: "Land Area Details" },
-              { icon: Crop, title: "PODI", sub: "Land Subdivision" },
-              { icon: Compass, title: "Survey Sketch", sub: "Official Layout" },
-              { icon: Layout, title: "Village Map", sub: "Boundary Details" },
-              { icon: History, title: "Mutation Record", sub: "Ownership History" },
-              { icon: Landmark, title: "GBA Records", sub: "e-Khata & Tax" },
-              { icon: Building2, title: "BDA", sub: "Layout Approvals" },
-              { icon: MapPin, title: "BMRDA", sub: "Region Approvals" },
-              { icon: Zap, title: "BESCOM", sub: "Electricity Connections" },
-              { icon: Droplets, title: "BWSSB", sub: "Water Connections" },
-              { icon: Stamp, title: "Property Registration", sub: "Sub-Registrar Office" },
-              { icon: Briefcase, title: "Dept. Liaison", sub: "Govt & Revenue Depts" }
-            ].map((doc, i) => (
-              <div 
-                key={i} 
-                onClick={() => handleServiceClick(doc.title)}
-                className="bg-background p-6 rounded-2xl border border-border/50 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-full bg-primary/5 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <doc.icon className="w-6 h-6" />
-                </div>
-                <h4 className="font-serif font-bold text-sm tracking-tight">{doc.title}</h4>
-                <p className="text-[10px] text-muted-foreground uppercase mt-1 tracking-wider">{doc.sub}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
 
 
