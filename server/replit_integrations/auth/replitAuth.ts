@@ -27,7 +27,7 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const secret = process.env.SESSION_SECRET ?? "dev-session-secret";
-  const secureCookie = process.env.NODE_ENV === "production";
+  const secureCookie = process.env.SECURE_COOKIES === "true";
 
   const sessionStore = process.env.DATABASE_URL
     ? new (connectPg(session))({
@@ -218,8 +218,9 @@ export async function setupAuth(app: Express) {
       const adminUser = await authStorage.getUserByUsername("admin");
       if (!adminUser) {
         console.log("Seeding default admin user...");
-        const hashedPassword = await bcrypt.hash("Nri@2026", 10);
+        const hashedPassword = await bcrypt.hash("Admin@123", 10);
         await authStorage.upsertUser({
+          id: crypto.randomUUID(),
           username: "admin",
           password: hashedPassword,
           role: "admin",
@@ -230,7 +231,7 @@ export async function setupAuth(app: Express) {
         console.log("Default admin user created.");
       } else if (adminUser.role !== "admin") {
         console.log("Fixing admin role for existing admin user...");
-        const hashedPassword = await bcrypt.hash("Nri@2026", 10);
+        const hashedPassword = await bcrypt.hash("Admin@123", 10);
         await authStorage.upsertUser({
           id: adminUser.id,
           username: "admin",
